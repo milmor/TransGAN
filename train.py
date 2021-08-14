@@ -140,7 +140,6 @@ def run_training(args):
 
     num_examples_to_generate = 25
     seed = tf.random.normal([num_examples_to_generate, hparams['noise_dim']])
-    policy = 'color,translation,cutout' 
     print('Total batches: {}'.format(tf.data.experimental.cardinality(train_dataset).numpy()))
     
     for _ in range(epochs):

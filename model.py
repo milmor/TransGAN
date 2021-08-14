@@ -204,7 +204,6 @@ class Discriminator(tf.keras.models.Model):
         self.policy = 'color,translation,cutout' 
 
     def call(self, img, label):
-    
         img = DiffAugment(img, self.policy)
         x1 = self.patch_32(img)
         B, H, W, C = x1.shape
