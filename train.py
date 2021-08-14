@@ -8,7 +8,6 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' # Disable tensorflow debugging logs
 import tensorflow as tf
 import time
 from model import Generator, Discriminator
-from diffaug import DiffAugment
 from utils import *
 from hparams import hparams
 
@@ -33,8 +32,8 @@ def run_training(args):
         beta_2=hparams['g_beta_2'])
     discriminator_optimizer = tf.keras.optimizers.Adam(
         learning_rate=hparams['d_learning_rate'], 
-       beta_1=hparams['d_beta_1'],
-       beta_2=hparams['d_beta_2'])
+        beta_1=hparams['d_beta_1'],
+        beta_2=hparams['d_beta_2'])
 
     os.makedirs(main_dir, exist_ok=True)
 
@@ -89,10 +88,8 @@ def run_training(args):
         for i in range(hparams['d_steps']):
             with tf.GradientTape() as disc_tape:
                 generator_output = generator(labels, noise, training=True)
-                aug_real_img = DiffAugment(real_images, policy)
-                aug_gen_img = DiffAugment(generator_output[0], policy)
-                real_disc_output = discriminator(aug_real_img,  labels, training=True)
-                fake_disc_output = discriminator(aug_gen_img, labels, training=True)
+                real_disc_output = discriminator(real_images,  labels, training=True)
+                fake_disc_output = discriminator(generator_output[0], labels, training=True)
 
                 d_cost = discriminator_loss(real_disc_output[0], fake_disc_output[0])  
                 disc_loss = d_cost
@@ -105,9 +102,7 @@ def run_training(args):
         # Train the generator
         with tf.GradientTape() as gen_tape:
             generator_output = generator(labels, noise, training=True)
-            generator_output[0] = DiffAugment(generator_output[0], policy)
-            aug_gen_img = DiffAugment(generator_output[0])
-            fake_disc_output = discriminator(aug_gen_img, labels, training=True)
+            fake_disc_output = discriminator(generator_output[0], labels, training=True)
 
             gen_loss = generator_loss(fake_disc_output[0])
 
@@ -117,13 +112,23 @@ def run_training(args):
         # Update metrics
         gen_loss_avg(gen_loss)
         disc_loss_avg(d_cost)
-    
-    if hparams['loss'] == 'hinge':
+            
+    if hparams['loss'] == 'bce':
+        cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+        def discriminator_loss(real_img, fake_img):
+            real_loss = cross_entropy(tf.ones_like(real_img), real_img)
+            fake_loss = cross_entropy(tf.zeros_like(fake_img), fake_img)
+            return real_loss + fake_loss
+
+        def generator_loss(fake_img):
+            return cross_entropy(tf.ones_like(fake_img), fake_img)
+
+    elif hparams['loss'] == 'hinge':
         def d_real_loss(logits):
             return tf.reduce_mean(tf.nn.relu(1.0 - logits))
 
         def d_fake_loss(logits):
-              return tf.reduce_mean(tf.nn.relu(1.0 + logits))
+            return tf.reduce_mean(tf.nn.relu(1.0 + logits))
 
         def discriminator_loss(real_img, fake_img):
             real_loss = d_real_loss(real_img)
@@ -132,8 +137,8 @@ def run_training(args):
 
         def generator_loss(fake_img):
             return -tf.reduce_mean(fake_img)
-        
-    num_examples_to_generate = 16
+
+    num_examples_to_generate = 25
     seed = tf.random.normal([num_examples_to_generate, hparams['noise_dim']])
     policy = 'color,translation,cutout' 
     print('Total batches: {}'.format(tf.data.experimental.cardinality(train_dataset).numpy()))
@@ -173,10 +178,10 @@ def run_training(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', default='model')
-    parser.add_argument('--main_dir', default='TransGAN')
-    parser.add_argument('--ckpt_interval', type=int, default=3)
+    parser.add_argument('--main_dir', default='ckpt')
+    parser.add_argument('--ckpt_interval', type=int, default=10)
     parser.add_argument('--max_ckpt_to_keep', type=int, default=20)
-    parser.add_argument('--epochs', type=int, default=3000)
+    parser.add_argument('--epochs', type=int, default=5000)
     
     args = parser.parse_args()
 

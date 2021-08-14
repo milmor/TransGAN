@@ -30,10 +30,10 @@ def save_hparams(model_dir, name):
 def generate_and_save_images(model, epoch, test_label, noise, direct):
     predictions = model(test_label, noise, training=False)
 
-    fig = plt.figure(figsize=(3, 3))
+    fig = plt.figure(figsize=(5, 5))
     predictions = tf.cast(predictions[0] * 127.5 + 127.5, tf.uint8)
     for i in range(predictions.shape[0]):
-        plt.subplot(4, 4, i+1)
+        plt.subplot(5, 5, i+1)
         plt.imshow(predictions[i, :, :, :])
         plt.axis('off')
     path = os.path.join(direct, '{:04d}.png'.format(epoch))

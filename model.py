@@ -10,6 +10,7 @@ Author: Emilio Morales (mil.mor.mor@gmail.com)
 '''
 import tensorflow as tf
 from tensorflow.keras import layers
+from diffaug import DiffAugment
 
 
 def pixel_upsample(x, H, W):
@@ -21,10 +22,8 @@ def pixel_upsample(x, H, W):
     x = tf.reshape(x, (-1, H * W, C))
     return x, H, W
 
-
 def normalize_2nd_moment(x, axis=1, eps=1e-8):
     return x * tf.math.rsqrt(tf.reduce_mean(tf.square(x), axis=axis, keepdims=True) + eps)
-
 
 def scaled_dot_product(q, k, v):
     dk = tf.cast(tf.shape(k)[-1], tf.float32)
@@ -111,7 +110,7 @@ class TransformerBlock(layers.Layer):
         
         
 class Generator(tf.keras.models.Model):
-    def __init__(self, d_model=512, noise_dim=128, depth=[1, 1, 1], 
+    def __init__(self, d_model=1024, noise_dim=128, depth=[5, 4, 2], 
                  window_size=8, n_classes=10):
         super(Generator, self).__init__()
         self.window_size = window_size
@@ -149,12 +148,10 @@ class Generator(tf.keras.models.Model):
         x = self.init(x)
         x = self.pos_emb_8(x)
         x = self.block_8(x)
-
         x, H, W = pixel_upsample(x, 8, 8)
         
         x = self.pos_emb_16(x)
         x = self.block_16(x)
-            
         x, H, W = pixel_upsample(x, H, W)
         
         x = self.pos_emb_32(x)
@@ -165,8 +162,8 @@ class Generator(tf.keras.models.Model):
 
 
 class Discriminator(tf.keras.models.Model):
-    def __init__(self, d_model=[16, 32], noise_dim=64, patch_size=4, 
-                 depth=[1, 1], window_size=8, img_size=32):
+    def __init__(self, d_model=[192, 192], noise_dim=64, patch_size=2, 
+                 depth=[3, 3], window_size=8, img_size=32):
         super(Discriminator, self).__init__()
         self.window_size = window_size
         '''Encode image'''
@@ -183,9 +180,8 @@ class Discriminator(tf.keras.models.Model):
 
         patches_16 = ((img_size//2) // patch_size)**2
         self.patch_16 = tf.keras.Sequential([
-            layers.AveragePooling2D(2),
-            layers.Conv2D(d_model[1], kernel_size=patch_size, 
-                          strides=patch_size, padding='same'),
+            layers.Conv2D(d_model[1], kernel_size=patch_size*2, 
+                          strides=patch_size*2, padding='same'),
         ])
         self.pos_emb_16 = PositionalEmbedding(n_patches=patches_16, 
                                               emb_dim=d_model[0] + d_model[1])
@@ -205,8 +201,11 @@ class Discriminator(tf.keras.models.Model):
             layers.Dense(1),
             layers.Activation('linear', dtype='float32')    
         ])
+        self.policy = 'color,translation,cutout' 
 
     def call(self, img, label):
+    
+        img = DiffAugment(img, self.policy)
         x1 = self.patch_32(img)
         B, H, W, C = x1.shape
         x1 = tf.reshape(x1, [B, H * W, C]) 
