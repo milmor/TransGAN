@@ -24,22 +24,7 @@ python train.py --model_name=<name>
 ```
 
 #### CIFAR-10
-<table>
-<tr>
-<td style="text-align: center">Epoch 3</td>
-<td style="text-align: center">Epoch 50</td> 
-<td style="text-align: center">Epoch 500</td>
-<td style="text-align: center">Epoch 1975</td> 
-</tr>
-<trt>
-</tr>
-<tr>
-<td> <img src='images/0003.png'style="width: 400px;"/> </td>
-<td> <img src='images/0050.png' style="width: 400px;"/> </td>
-<td> <img src='images/0500.png'style="width: 400px;"/> </td>
-<td> <img src='images/1975.png' style="width: 400px;"/> </td>
-</tr>
-</table>
+![](images/lite_transgan.gif "LiteTransGAN ON CIFAR-10")
 
 ### Hparams setting
 Set hyperparameters on the `hparams.py` file.
