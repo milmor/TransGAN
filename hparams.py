@@ -7,6 +7,7 @@ hparams = {'batch_size': 64,
            'g_beta_2': 0.99,
            'd_dim': [192, 192], # [192, 192]
            'd_depth': [3, 3], # [3, 3]
+           'd_patch_size': 2,
            'd_learning_rate': 0.0001,
            'd_beta_1': 0.0,
            'd_beta_2': 0.99,

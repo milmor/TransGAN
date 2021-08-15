@@ -73,7 +73,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         return output
         
 
-class PositionalEmbedding(layers.Layer):
+class PositionalEmbedding(tf.keras.layers.Layer):
     def __init__(self, n_patches, emb_dim):
         super(PositionalEmbedding, self).__init__()
         self.n_patches = n_patches
@@ -86,7 +86,7 @@ class PositionalEmbedding(layers.Layer):
         return patches + self.position_embedding(positions)
 
     
-class TransformerBlock(layers.Layer):
+class TransformerBlock(tf.keras.layers.Layer):
     def __init__(self, emb_dim, num_heads=2, mlp_dim=512, rate=0.0, eps=1e-6):
         super(TransformerBlock, self).__init__()
         self.attn = MultiHeadAttention(emb_dim, num_heads)
@@ -162,8 +162,8 @@ class Generator(tf.keras.models.Model):
 
 
 class Discriminator(tf.keras.models.Model):
-    def __init__(self, d_model=[192, 192], noise_dim=64, patch_size=2, 
-                 depth=[3, 3], window_size=8, img_size=32):
+    def __init__(self, d_model=[192, 192], depth=[3, 3], patch_size=2, 
+                 window_size=8, img_size=32, n_classes=10):
         super(Discriminator, self).__init__()
         self.window_size = window_size
         '''Encode image'''
@@ -188,14 +188,10 @@ class Discriminator(tf.keras.models.Model):
         self.block_16 = tf.keras.Sequential()
         for _ in range(depth[1]):
             self.block_16.add(TransformerBlock(d_model[0] + d_model[1]))
-        
-        '''Encode target'''        
-        self.class_emb = layers.Embedding(10, noise_dim)
-        '''Joint'''
-        self.head = tf.keras.Sequential([
-            layers.Flatten(),
-            layers.Dense(noise_dim, activation='gelu'),
-        ])
+        '''Last block'''
+        self.last_block=TransformerBlock(d_model[0] + d_model[1])
+        '''Encode cls_token'''        
+        self.cls_token = layers.Embedding(n_classes, d_model[0] + d_model[1])
         '''Logits'''
         self.logits = tf.keras.Sequential([
             layers.Dense(1),
@@ -203,7 +199,7 @@ class Discriminator(tf.keras.models.Model):
         ])
         self.policy = 'color,translation,cutout' 
 
-    def call(self, img, label):
+    def call(self, img, cls):
         img = DiffAugment(img, self.policy)
         x1 = self.patch_32(img)
         B, H, W, C = x1.shape
@@ -221,7 +217,7 @@ class Discriminator(tf.keras.models.Model):
         x = self.pos_emb_16(x)
         x = self.block_16(x)
 
-        emb_code = self.class_emb(label) # (B, 1, noise_dim)
-        emb_code = tf.squeeze(emb_code, axis=1) # (B, noise_dim)
-        x = self.head(x) * emb_code
-        return [self.logits(x)]
+        cls_code = self.cls_token(cls)
+        x = tf.concat([cls_code, x], 1)
+        x = self.last_block(x)
+        return [self.logits(x[:, 0])]

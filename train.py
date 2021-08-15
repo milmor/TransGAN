@@ -23,8 +23,8 @@ def run_training(args):
                           noise_dim=hparams['noise_dim'],
                           depth=hparams['g_depth'])
     discriminator = Discriminator(hparams['d_dim'], 
-                                  noise_dim=hparams['noise_dim'],
-                                  depth=hparams['d_depth'])
+                                  depth=hparams['d_depth'],
+                                  patch_size=hparams['d_patch_size'])
     
     generator_optimizer = tf.keras.optimizers.Adam(
         learning_rate=hparams['g_learning_rate'], 
@@ -177,7 +177,7 @@ def run_training(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--model_name', default='model')
-    parser.add_argument('--main_dir', default='ckpt')
+    parser.add_argument('--main_dir', default='logs-TransGAN')
     parser.add_argument('--ckpt_interval', type=int, default=10)
     parser.add_argument('--max_ckpt_to_keep', type=int, default=20)
     parser.add_argument('--epochs', type=int, default=5000)
