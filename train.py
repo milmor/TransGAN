@@ -64,7 +64,7 @@ def run_training(args):
         print('Restored {} from: {}'.format(model_name, ckpt_manager.latest_checkpoint))
     else:
         print('Initializing {} from scratch'.format(model_name))
-    save_hparams(model_dir, model_name)
+    save_hparams(hparams, model_dir, model_name)
     
     (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.cifar10.load_data()
     train_images = train_images.astype('float32')

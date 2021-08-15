@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import json
-from hparams import hparams
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
@@ -21,7 +20,7 @@ def create_ds(images, labels, batch_size, seed=15):
     )
     return ds
 
-def save_hparams(model_dir, name):
+def save_hparams(hparams, model_dir, name):
     json_hparams = json.dumps(hparams)
     f = open(os.path.join(model_dir, '{}_hparams.json'.format(name)), 'w')
     f.write(json_hparams)
