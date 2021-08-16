@@ -72,9 +72,9 @@ def run_training(args):
     train_images = (train_images - 127.5) / 127.5 
     test_images = (test_images - 127.5) / 127.5 
     train_dataset = create_ds(train_images, train_labels, 
-    						  hparams['batch_size'], seed=seed)
+                              hparams['batch_size'], seed=seed)
     test_dataset = create_ds(test_images, test_labels, 
-    						 hparams['batch_size'], seed=seed)
+                             hparams['batch_size'], seed=seed)
 
     test_batch = next(iter(test_dataset))
     
@@ -164,6 +164,7 @@ def run_training(args):
         # Clear metrics
         gen_loss_avg.reset_states()
         disc_loss_avg.reset_states()
+        gp_avg.reset_states()
 
         for image_batch, label_batch in train_dataset:
             loss = train_step(image_batch, label_batch)
