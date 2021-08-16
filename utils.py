@@ -43,3 +43,18 @@ def generate_and_save_images(model, epoch, test_label, noise, direct):
     plt.clf() 
     # Closes all the figure windows.
     plt.close('all')
+    
+def gradient_penalty(critic, real_samples, fake_samples, labels):
+    alpha = tf.random.normal([real_samples.shape[0], 1, 1, 1])
+    interpolation = (alpha * real_samples + ((1 - alpha) * fake_samples))
+
+    with tf.GradientTape() as gradient_tape:
+        gradient_tape.watch(interpolation)
+        pred = critic(interpolation, labels, training=True)
+
+    # Interpolated image gradients
+    gradients = gradient_tape.gradient(pred, [interpolation])[0]
+    # Gradient norm
+    norm = tf.sqrt(tf.reduce_sum(tf.square(gradients), axis=[1, 2, 3]))
+    gradient_penalty = tf.reduce_mean((norm - 1.0) ** 2)
+    return gradient_penalty

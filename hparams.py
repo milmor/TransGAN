@@ -12,4 +12,5 @@ hparams = {'batch_size': 64,
            'd_beta_1': 0.0,
            'd_beta_2': 0.99,
            'd_steps': 2,
-           'loss': 'bce'}
+           'loss': 'wgan',
+           'gp_weight': 1.0}
