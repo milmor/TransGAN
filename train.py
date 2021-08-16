@@ -20,11 +20,15 @@ def run_training(args):
     epochs = args.epochs
     seed = args.seed
     
-    generator = Generator(hparams['g_dim'], 
+    generator = Generator(d_model=hparams['g_dim'], 
                           noise_dim=hparams['noise_dim'],
-                          depth=hparams['g_depth'])
-    discriminator = Discriminator(hparams['d_dim'], 
+                          depth=hparams['g_depth'],
+                          heads=hparams['g_heads'],
+                          d_mlp=hparams['g_mlp'])
+    discriminator = Discriminator(d_model=hparams['d_dim'], 
                                   depth=hparams['d_depth'],
+                                  heads=hparams['d_heads'],
+                                  d_mlp=hparams['d_mlp'],
                                   patch_size=hparams['d_patch_size'])
     
     generator_optimizer = tf.keras.optimizers.Adam(
@@ -61,10 +65,13 @@ def run_training(args):
     print('TransGAN Train')
     print('##############\n')
     if ckpt_manager.latest_checkpoint:
-        print('Restored {} from: {}'.format(model_name, ckpt_manager.latest_checkpoint))
+        print('Restored {} from: {}\n'.format(model_name, ckpt_manager.latest_checkpoint))
     else:
-        print('Initializing {} from scratch'.format(model_name))
+        print('Initializing {} from scratch\n'.format(model_name))
     save_hparams(hparams, model_dir, model_name)
+    for key, value in hparams.items():
+        print(key, ': ', value)
+    print('\n')
     
     (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.cifar10.load_data()
     train_images = train_images.astype('float32')
@@ -167,7 +174,7 @@ def run_training(args):
         gp_avg.reset_states()
 
         for image_batch, label_batch in train_dataset:
-            loss = train_step(image_batch, label_batch)
+            train_step(image_batch, label_batch)
 
         # Print and save Tensorboard
         print('\nTime for epoch {} is {} sec'.format(step_int, time.time()-start))

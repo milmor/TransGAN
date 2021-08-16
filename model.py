@@ -111,9 +111,8 @@ class TransformerBlock(tf.keras.layers.Layer):
         
 class Generator(tf.keras.models.Model):
     def __init__(self, d_model=1024, noise_dim=128, depth=[5, 4, 2], 
-                 window_size=8, n_classes=10):
+                 heads=[2, 2, 2], d_mlp=[512, 512, 512], n_classes=10):
         super(Generator, self).__init__()
-        self.window_size = window_size
         self.class_emb = layers.Embedding(n_classes, noise_dim)
         self.init = tf.keras.Sequential([
             layers.Dense(8 * 8 * d_model, use_bias=False),
@@ -123,17 +122,17 @@ class Generator(tf.keras.models.Model):
         self.pos_emb_8 = PositionalEmbedding(64, d_model)
         self.block_8 = tf.keras.Sequential()
         for _ in range(depth[0]):
-            self.block_8.add(TransformerBlock(d_model))
+            self.block_8.add(TransformerBlock(d_model, heads[0], d_mlp[0]))
          
         self.pos_emb_16 = PositionalEmbedding(256, d_model // 4)
         self.block_16 = tf.keras.Sequential()
         for _ in range(depth[1]):
-            self.block_16.add(TransformerBlock(d_model // 4))
+            self.block_16.add(TransformerBlock(d_model // 4, heads[1], d_mlp[1]))
             
         self.pos_emb_32 = PositionalEmbedding(1024, d_model // 16)
         self.block_32 = tf.keras.Sequential()
         for _ in range(depth[2]):
-            self.block_32.add(TransformerBlock(d_model // 16))
+            self.block_32.add(TransformerBlock(d_model // 16, heads[2], d_mlp[2]))
 
         self.ch_conv = layers.Conv2D(3, 3, padding='same')
         self.tanh = layers.Activation('tanh', dtype='float32')
@@ -163,9 +162,8 @@ class Generator(tf.keras.models.Model):
 
 class Discriminator(tf.keras.models.Model):
     def __init__(self, d_model=[192, 192], depth=[3, 3], patch_size=2, 
-                 window_size=8, img_size=32, n_classes=10):
+                 heads=[2, 2, 2], d_mlp=[512, 512, 512], img_size=32, n_classes=10):
         super(Discriminator, self).__init__()
-        self.window_size = window_size
         '''Encode image'''
         patches_32 = (img_size // patch_size)**2
         self.patch_32 = tf.keras.Sequential([
@@ -176,7 +174,7 @@ class Discriminator(tf.keras.models.Model):
                                               emb_dim=d_model[0])
         self.block_32 = tf.keras.Sequential()
         for _ in range(depth[0]):
-            self.block_32.add(TransformerBlock(d_model[0]))
+            self.block_32.add(TransformerBlock(d_model[0], heads[0], d_mlp[0]))
 
         patches_16 = ((img_size//2) // patch_size)**2
         self.patch_16 = tf.keras.Sequential([
@@ -187,9 +185,10 @@ class Discriminator(tf.keras.models.Model):
                                               emb_dim=d_model[0] + d_model[1])
         self.block_16 = tf.keras.Sequential()
         for _ in range(depth[1]):
-            self.block_16.add(TransformerBlock(d_model[0] + d_model[1]))
+            self.block_16.add(TransformerBlock(d_model[0] + d_model[1], 
+                                               heads[1], d_mlp[1]))
         '''Last block'''
-        self.last_block=TransformerBlock(d_model[0] + d_model[1])
+        self.last_block=TransformerBlock(d_model[0] + d_model[1], heads[2], d_mlp[2])
         '''Encode cls_token'''        
         self.cls_token = layers.Embedding(n_classes, d_model[0] + d_model[1])
         '''Logits'''
