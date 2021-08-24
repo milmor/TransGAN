@@ -20,15 +20,15 @@ def run_training(args):
     epochs = args.epochs
     seed = args.seed
     
-    generator = Generator(d_model=hparams['g_dim'], 
+    generator = Generator(model_dim=hparams['g_dim'], 
                           noise_dim=hparams['noise_dim'],
                           depth=hparams['g_depth'],
                           heads=hparams['g_heads'],
-                          d_mlp=hparams['g_mlp'])
-    discriminator = Discriminator(d_model=hparams['d_dim'], 
+                          mlp_dim=hparams['g_mlp'])
+    discriminator = Discriminator(model_dim=hparams['d_dim'], 
                                   depth=hparams['d_depth'],
                                   heads=hparams['d_heads'],
-                                  d_mlp=hparams['d_mlp'],
+                                  mlp_dim=hparams['d_mlp'],
                                   patch_size=hparams['d_patch_size'])
     
     generator_optimizer = tf.keras.optimizers.Adam(

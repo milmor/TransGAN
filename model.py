@@ -34,23 +34,23 @@ def scaled_dot_product(q, k, v):
     
 
 class MultiHeadAttention(tf.keras.layers.Layer):
-    def __init__(self, d_model, num_heads):
+    def __init__(self, model_dim, n_heads):
         super(MultiHeadAttention, self).__init__()
-        self.num_heads = num_heads
-        self.d_model = d_model
+        self.n_heads = n_heads
+        self.model_dim = model_dim
 
-        assert d_model % self.num_heads == 0
+        assert model_dim % self.n_heads == 0
 
-        self.depth = d_model // self.num_heads
+        self.depth = model_dim // self.n_heads
 
-        self.wq = layers.Dense(d_model)
-        self.wk = layers.Dense(d_model)
-        self.wv = layers.Dense(d_model)
+        self.wq = layers.Dense(model_dim)
+        self.wk = layers.Dense(model_dim)
+        self.wv = layers.Dense(model_dim)
 
-        self.dense = layers.Dense(d_model)
+        self.dense = layers.Dense(model_dim)
 
     def split_into_heads(self, x, batch_size):
-        x = tf.reshape(x, (batch_size, -1, self.num_heads, self.depth))
+        x = tf.reshape(x, (batch_size, -1, self.n_heads, self.depth))
         return tf.transpose(x, perm=[0, 2, 1, 3])
 
     def call(self, v, k, q, mask=None):
@@ -67,18 +67,18 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         scaled_attention = scaled_dot_product(q, k, v)
 
         scaled_attention = tf.transpose(scaled_attention, perm=[0, 2, 1, 3]) 
-        original_size_attention = tf.reshape(scaled_attention, (batch_size, -1, self.d_model)) 
+        original_size_attention = tf.reshape(scaled_attention, (batch_size, -1, self.model_dim)) 
 
         output = self.dense(original_size_attention) 
         return output
         
 
 class PositionalEmbedding(tf.keras.layers.Layer):
-    def __init__(self, n_patches, emb_dim):
+    def __init__(self, n_patches, model_dim):
         super(PositionalEmbedding, self).__init__()
         self.n_patches = n_patches
         self.position_embedding = layers.Embedding(
-            input_dim=n_patches, output_dim=emb_dim
+            input_dim=n_patches, output_dim=model_dim
         )
 
     def call(self, patches):
@@ -87,12 +87,12 @@ class PositionalEmbedding(tf.keras.layers.Layer):
 
     
 class TransformerBlock(tf.keras.layers.Layer):
-    def __init__(self, emb_dim, num_heads=2, mlp_dim=512, rate=0.0, eps=1e-6):
+    def __init__(self, model_dim, n_heads=2, mlp_dim=512, rate=0.0, eps=1e-6):
         super(TransformerBlock, self).__init__()
-        self.attn = MultiHeadAttention(emb_dim, num_heads)
+        self.attn = MultiHeadAttention(model_dim, n_heads)
         self.mlp = tf.keras.Sequential([
             layers.Dense(mlp_dim, activation='gelu'), 
-            layers.Dense(emb_dim),
+            layers.Dense(model_dim),
         ])
         self.norm1 = layers.LayerNormalization(epsilon=eps)
         self.norm2 = layers.LayerNormalization(epsilon=eps)
@@ -110,29 +110,29 @@ class TransformerBlock(tf.keras.layers.Layer):
         
         
 class Generator(tf.keras.models.Model):
-    def __init__(self, d_model=1024, noise_dim=128, depth=[5, 4, 2], 
-                 heads=[2, 2, 2], d_mlp=[512, 512, 512], n_classes=10):
+    def __init__(self, model_dim=1024, noise_dim=128, depth=[5, 4, 2], 
+                 heads=[2, 2, 2], mlp_dim=[512, 512, 512], n_classes=10):
         super(Generator, self).__init__()
         self.class_emb = layers.Embedding(n_classes, noise_dim)
         self.init = tf.keras.Sequential([
-            layers.Dense(8 * 8 * d_model, use_bias=False),
-            layers.Reshape((8 * 8, d_model))
+            layers.Dense(8 * 8 * model_dim, use_bias=False),
+            layers.Reshape((8 * 8, model_dim))
         ])     
         
-        self.pos_emb_8 = PositionalEmbedding(64, d_model)
+        self.pos_emb_8 = PositionalEmbedding(64, model_dim)
         self.block_8 = tf.keras.Sequential()
         for _ in range(depth[0]):
-            self.block_8.add(TransformerBlock(d_model, heads[0], d_mlp[0]))
+            self.block_8.add(TransformerBlock(model_dim, heads[0], mlp_dim[0]))
          
-        self.pos_emb_16 = PositionalEmbedding(256, d_model // 4)
+        self.pos_emb_16 = PositionalEmbedding(256, model_dim // 4)
         self.block_16 = tf.keras.Sequential()
         for _ in range(depth[1]):
-            self.block_16.add(TransformerBlock(d_model // 4, heads[1], d_mlp[1]))
+            self.block_16.add(TransformerBlock(model_dim // 4, heads[1], mlp_dim[1]))
             
-        self.pos_emb_32 = PositionalEmbedding(1024, d_model // 16)
+        self.pos_emb_32 = PositionalEmbedding(1024, model_dim // 16)
         self.block_32 = tf.keras.Sequential()
         for _ in range(depth[2]):
-            self.block_32.add(TransformerBlock(d_model // 16, heads[2], d_mlp[2]))
+            self.block_32.add(TransformerBlock(model_dim // 16, heads[2], mlp_dim[2]))
 
         self.ch_conv = layers.Conv2D(3, 3, padding='same')
         self.tanh = layers.Activation('tanh', dtype='float32')
@@ -161,36 +161,36 @@ class Generator(tf.keras.models.Model):
 
 
 class Discriminator(tf.keras.models.Model):
-    def __init__(self, d_model=[192, 192], depth=[3, 3], patch_size=2, 
-                 heads=[2, 2, 2], d_mlp=[512, 512, 512], img_size=32, n_classes=10):
+    def __init__(self, model_dim=[192, 192], depth=[3, 3], patch_size=2, 
+                 heads=[2, 2, 2], mlp_dim=[512, 512, 512], img_size=32, n_classes=10):
         super(Discriminator, self).__init__()
         '''Encode image'''
         patches_32 = (img_size // patch_size)**2
         self.patch_32 = tf.keras.Sequential([
-            layers.Conv2D(d_model[0], kernel_size=patch_size, 
+            layers.Conv2D(model_dim[0], kernel_size=patch_size, 
                           strides=patch_size, padding='same')
         ])
         self.pos_emb_32 = PositionalEmbedding(n_patches=patches_32, 
-                                              emb_dim=d_model[0])
+                                              model_dim=model_dim[0])
         self.block_32 = tf.keras.Sequential()
         for _ in range(depth[0]):
-            self.block_32.add(TransformerBlock(d_model[0], heads[0], d_mlp[0]))
+            self.block_32.add(TransformerBlock(model_dim[0], heads[0], mlp_dim[0]))
 
         patches_16 = ((img_size//2) // patch_size)**2
         self.patch_16 = tf.keras.Sequential([
-            layers.Conv2D(d_model[1], kernel_size=patch_size*2, 
+            layers.Conv2D(model_dim[1], kernel_size=patch_size*2, 
                           strides=patch_size*2, padding='same'),
         ])
         self.pos_emb_16 = PositionalEmbedding(n_patches=patches_16, 
-                                              emb_dim=d_model[0] + d_model[1])
+                                              model_dim=model_dim[0] + model_dim[1])
         self.block_16 = tf.keras.Sequential()
         for _ in range(depth[1]):
-            self.block_16.add(TransformerBlock(d_model[0] + d_model[1], 
-                                               heads[1], d_mlp[1]))
+            self.block_16.add(TransformerBlock(model_dim[0] + model_dim[1], 
+                                               heads[1], mlp_dim[1]))
         '''Last block'''
-        self.last_block=TransformerBlock(d_model[0] + d_model[1], heads[2], d_mlp[2])
+        self.last_block=TransformerBlock(model_dim[0] + model_dim[1], heads[2], mlp_dim[2])
         '''Encode cls_token'''        
-        self.cls_token = layers.Embedding(n_classes, d_model[0] + d_model[1])
+        self.cls_token = layers.Embedding(n_classes, model_dim[0] + model_dim[1])
         '''Logits'''
         self.logits = tf.keras.Sequential([
             layers.Dense(1),
