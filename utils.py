@@ -46,7 +46,8 @@ def generate_and_save_images(model, epoch, test_label, noise, direct):
     
 def gradient_penalty(critic, real_samples, fake_samples, labels):
     alpha = tf.random.normal([real_samples.shape[0], 1, 1, 1])
-    interpolation = (alpha * real_samples + ((1 - alpha) * fake_samples))
+    differences = fake_samples - real_samples
+    interpolation = real_samples + (alpha * differences)
 
     with tf.GradientTape() as gradient_tape:
         gradient_tape.watch(interpolation)

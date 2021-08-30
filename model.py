@@ -135,7 +135,6 @@ class Generator(tf.keras.models.Model):
             self.block_32.add(TransformerBlock(model_dim // 16, heads[2], mlp_dim[2]))
 
         self.ch_conv = layers.Conv2D(3, 3, padding='same')
-        self.tanh = layers.Activation('tanh', dtype='float32')
                        
     def call(self, x, z):
         B = x.shape[0]
@@ -157,7 +156,7 @@ class Generator(tf.keras.models.Model):
         x = self.block_32(x)
 
         x = tf.reshape(x, [B, H, W, -1])
-        return [self.tanh(self.ch_conv(x))]
+        return [self.ch_conv(x)]
 
 
 class Discriminator(tf.keras.models.Model):
