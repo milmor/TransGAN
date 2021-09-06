@@ -188,13 +188,11 @@ class Discriminator(tf.keras.models.Model):
                                                heads[1], mlp_dim[1]))
         '''Last block'''
         self.last_block=TransformerBlock(model_dim[0] + model_dim[1], heads[2], mlp_dim[2])
+        self.norm = layers.LayerNormalization()
         '''Encode cls_token'''        
         self.cls_token = layers.Embedding(n_classes, model_dim[0] + model_dim[1])
         '''Logits'''
-        self.logits = tf.keras.Sequential([
-            layers.Dense(1),
-            layers.Activation('linear', dtype='float32')    
-        ])
+        self.logits = layers.Dense(1)
         self.policy = 'color,translation,cutout' 
 
     def call(self, img, cls):
@@ -218,4 +216,5 @@ class Discriminator(tf.keras.models.Model):
         cls_code = self.cls_token(cls)
         x = tf.concat([cls_code, x], 1)
         x = self.last_block(x)
+        x = self.norm(x)
         return [self.logits(x[:, 0])]

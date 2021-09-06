@@ -1,8 +1,8 @@
 hparams = {'batch_size': 64,
            'noise_dim': 64,
-           'g_dim': 256, # 1024
+           'g_dim': 128, # 1024
            'g_depth': [1, 1, 1], # [5, 4, 2]
-           'g_heads': [4, 2, 1], # [2, 2, 2]
+           'g_heads': [2, 2, 2], # [2, 2, 2]
            'g_mlp': [512, 512, 512],
            'g_learning_rate': 0.0001,
            'g_beta_1': 0.0,
