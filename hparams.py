@@ -5,7 +5,7 @@ hparams = {'batch_size': 64,
            'g_depth': [2, 2, 2], # Default: [5, 4, 2]
            'g_heads': [2, 2, 2], # Default: [4, 4, 4]
            'g_mlp': [1024, 512, 128], # Default: [4096, 1024, 256]
-           'g_initializer': 'glorot_uniform', # Default: glorot_uniform
+           'g_initializer': 'glorot_uniform', # Default: 'glorot_uniform'
            'g_learning_rate': 0.0001,
            'g_beta_1': 0.0,
            'g_beta_2': 0.99,
