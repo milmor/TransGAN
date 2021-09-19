@@ -13,22 +13,39 @@ from hparams import hparams
 
 
 def run_training(args): 
+    print('\n##############')
+    print('TransGAN Train')
+    print('##############\n')
     model_name = args.model_name
     main_dir = args.main_dir
     ckpt_interval = args.ckpt_interval
     max_ckpt_to_keep = args.max_ckpt_to_keep
     epochs = args.epochs
-    seed = args.seed
+    train_seed = args.train_seed
+    test_seed = args.test_seed
     
+    # Create dirs
+    os.makedirs(main_dir, exist_ok=True)
+
+    model_dir = os.path.join(main_dir, model_name)
+    log_dir = os.path.join(model_dir, 'log-dir')
+
+    writer = tf.summary.create_file_writer(log_dir)
+
+    gen_test_dir = os.path.join(model_dir, 'test-gen')
+    os.makedirs(gen_test_dir, exist_ok=True)
+
     generator = Generator(model_dim=hparams['g_dim'], 
                           noise_dim=hparams['noise_dim'],
                           depth=hparams['g_depth'],
                           heads=hparams['g_heads'],
-                          mlp_dim=hparams['g_mlp'])
+                          mlp_dim=hparams['g_mlp'],
+                          initializer=hparams['g_initializer'])
     discriminator = Discriminator(model_dim=hparams['d_dim'], 
                                   depth=hparams['d_depth'],
                                   heads=hparams['d_heads'],
                                   mlp_dim=hparams['d_mlp'],
+                                  initializer=hparams['d_initializer'],
                                   patch_size=hparams['d_patch_size'])
     
     generator_optimizer = tf.keras.optimizers.Adam(
@@ -39,16 +56,6 @@ def run_training(args):
         learning_rate=hparams['d_learning_rate'], 
         beta_1=hparams['d_beta_1'],
         beta_2=hparams['d_beta_2'])
-
-    os.makedirs(main_dir, exist_ok=True)
-
-    model_dir = os.path.join(main_dir, model_name)
-    log_dir = os.path.join(model_dir, 'log-dir')
-
-    writer = tf.summary.create_file_writer(log_dir)
-
-    gen_test_dir = os.path.join(model_dir, 'test-gen')
-    os.makedirs(gen_test_dir, exist_ok=True)
 
     checkpoint_dir = os.path.join(model_dir, 'training-checkpoints')
     ckpt = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
@@ -61,72 +68,21 @@ def run_training(args):
                                               max_to_keep=max_ckpt_to_keep)
     ckpt.restore(ckpt_manager.latest_checkpoint)
     
-    print('\n##############')
-    print('TransGAN Train')
-    print('##############\n')
     if ckpt_manager.latest_checkpoint:
         print('Restored {} from: {}\n'.format(model_name, ckpt_manager.latest_checkpoint))
     else:
         print('Initializing {} from scratch\n'.format(model_name))
-    save_hparams(hparams, model_dir, model_name)
+        save_hparams(hparams, model_dir, model_name)
     for key, value in hparams.items():
         print(key, ': ', value)
     print('\n')
     
-    (train_images, train_labels), (test_images, test_labels) = tf.keras.datasets.cifar10.load_data()
+    (train_images, _), (_, _) = tf.keras.datasets.cifar10.load_data()
     train_images = train_images.astype('float32')
-    test_images = test_images.astype('float32')
     train_images = (train_images - 127.5) / 127.5 
-    test_images = (test_images - 127.5) / 127.5 
-    train_dataset = create_ds(train_images, train_labels, 
-                              hparams['batch_size'], seed=seed)
-    test_dataset = create_ds(test_images, test_labels, 
-                             hparams['batch_size'], seed=seed)
 
-    test_batch = next(iter(test_dataset))
-    
-    gen_loss_avg = tf.keras.metrics.Mean()
-    disc_loss_avg = tf.keras.metrics.Mean()
-    gp_avg = tf.keras.metrics.Mean()
-    
-    @tf.function
-    def train_step(real_images, labels):
-        noise = tf.random.normal([hparams['batch_size'], hparams['noise_dim']])
-
-        # Train the discriminator
-        for i in range(hparams['d_steps']):
-            with tf.GradientTape() as disc_tape:
-                generator_output = generator(labels, noise, training=True)
-                real_disc_output = discriminator(real_images,  labels, training=True)
-                fake_disc_output = discriminator(generator_output[0], labels, training=True)
-                d_cost = discriminator_loss(real_disc_output[0], fake_disc_output[0])  
-                if hparams['loss'] == 'wgan':
-                    gp = gradient_penalty(
-                        discriminator, real_images, 
-                        generator_output[0], labels) * hparams['gp_weight']
-                else:
-                    gp = 0.0
-                disc_loss = d_cost + gp 
-
-            disc_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
-            discriminator_optimizer.apply_gradients(zip(disc_gradients, discriminator.trainable_variables)) 
-
-        noise = tf.random.normal([hparams['batch_size'], hparams['noise_dim']])
-
-        # Train the generator
-        with tf.GradientTape() as gen_tape:
-            generator_output = generator(labels, noise, training=True)
-            fake_disc_output = discriminator(generator_output[0], labels, training=True)
-            gen_loss = generator_loss(fake_disc_output[0])
-
-        gen_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
-        generator_optimizer.apply_gradients(zip(gen_gradients, generator.trainable_variables))
-
-        # Update metrics
-        gen_loss_avg(gen_loss)
-        disc_loss_avg(d_cost)
-        gp_avg(gp)
-            
+    train_dataset = create_ds(train_images, hparams['batch_size'], seed=train_seed)
+              
     if hparams['loss'] == 'bce':
         cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
         def discriminator_loss(real_img, fake_img):
@@ -156,15 +112,63 @@ def run_training(args):
         def discriminator_loss(real_img, fake_img):
             real_loss = tf.reduce_mean(real_img)
             fake_loss = tf.reduce_mean(fake_img)
-            return fake_loss - real_loss
+            return fake_loss - real_loss + (tf.reduce_mean(real_img) ** 2) * 1e-3
 
         def generator_loss(fake_img):
             return -tf.reduce_mean(fake_img)
 
-    num_examples_to_generate = 25
-    noise_seed = tf.random.normal([num_examples_to_generate, hparams['noise_dim']])
+    gen_loss_avg = tf.keras.metrics.Mean()
+    disc_loss_avg = tf.keras.metrics.Mean()
+    gp_avg = tf.keras.metrics.Mean()
+
+    @tf.function
+    def train_step(real_images):
+        noise = tf.random.normal([hparams['batch_size'], hparams['noise_dim']])
+
+        # Train the discriminator
+        for _ in range(hparams['d_steps']):
+            with tf.GradientTape() as disc_tape:
+                generator_output = generator(noise, training=True)
+                real_disc_output = discriminator(real_images, training=True)
+                fake_disc_output = discriminator(generator_output[0], training=True)
+                d_cost = discriminator_loss(real_disc_output[0], fake_disc_output[0])  
+                if hparams['loss'] == 'wgan':
+                    gp = gradient_penalty(
+                        discriminator, real_images, 
+                        generator_output[0]) * hparams['gp_weight']
+                else:
+                    gp = 0.0
+                disc_loss = d_cost + gp 
+
+            disc_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+            disc_gradients, _ = tf.clip_by_global_norm(disc_gradients, 5.0)
+            discriminator_optimizer.apply_gradients(zip(disc_gradients, discriminator.trainable_variables)) 
+
+        noise = tf.random.normal([hparams['batch_size'], hparams['noise_dim']])
+
+        # Train the generator
+        with tf.GradientTape() as gen_tape:
+            generator_output = generator(noise, training=True)
+            fake_disc_output = discriminator(generator_output[0], training=True)
+            gen_loss = generator_loss(fake_disc_output[0])
+
+        gen_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
+        gen_gradients, _ = tf.clip_by_global_norm(gen_gradients, 5.0)
+        generator_optimizer.apply_gradients(zip(gen_gradients, generator.trainable_variables))
+
+        # Update metrics
+        gen_loss_avg(gen_loss)
+        disc_loss_avg(d_cost)
+        gp_avg(gp)
+
+    # n examples to plot with generate_and_save_images()
+    num_examples_to_generate = args.n_plot_images 
+    # noise_seed to plot with generate_and_save_images()
+    noise_seed = tf.random.normal([num_examples_to_generate, 
+                                  hparams['noise_dim']], seed=test_seed) 
+    writer = tf.summary.create_file_writer(log_dir)
     print('Total batches: {}'.format(tf.data.experimental.cardinality(train_dataset).numpy()))
-    
+
     for _ in range(epochs):
         start = time.time()
         step_int = int(ckpt.epoch)
@@ -173,8 +177,9 @@ def run_training(args):
         disc_loss_avg.reset_states()
         gp_avg.reset_states()
 
-        for image_batch, label_batch in train_dataset:
-            train_step(image_batch, label_batch)
+        # Run epoch
+        for image_batch in train_dataset:
+            train_step(image_batch)
 
         # Print and save Tensorboard
         print('\nTime for epoch {} is {} sec'.format(step_int, time.time()-start))
@@ -186,14 +191,13 @@ def run_training(args):
             tf.summary.scalar('discriminator_loss', disc_loss_avg.result(), step=step_int)
             tf.summary.scalar('gp', gp_avg.result(), step=step_int)
 
-        # Generate and save test images  
-        generate_and_save_images(generator, step_int,
-                                 test_batch[1][:num_examples_to_generate],
-                                 noise_seed, gen_test_dir)
+        # Generate and save test images plot
+        generate_and_save_images(generator, step_int, noise_seed, gen_test_dir)
 
         # Save checkpoint
         if (step_int) % ckpt_interval == 0:
             ckpt_manager.save(step_int)
+            print('Checkpoint saved at epoch {}'.format(step_int)) 
         ckpt.epoch.assign_add(1)
     
     
@@ -204,7 +208,9 @@ def main():
     parser.add_argument('--ckpt_interval', type=int, default=10)
     parser.add_argument('--max_ckpt_to_keep', type=int, default=20)
     parser.add_argument('--epochs', type=int, default=5000)
-    parser.add_argument('--seed', type=int, default=15)    
+    parser.add_argument('--train_seed', type=int, default=15)    
+    parser.add_argument('--test_seed', type=int, default=15)    
+    parser.add_argument('--n_plot_images', type=int, default=64) 
     args = parser.parse_args()
 
     run_training(args)

@@ -4,7 +4,7 @@
 - Yifan Jiang, Shiyu Chang and Zhangyang Wang. 
   [TransGAN: Two Pure Transformers Can Make One Strong GAN, and That Can Scale Up]
   (https://arxiv.org/abs/2102.07074). 
-
+  
 Author: Emilio Morales (mil.mor.mor@gmail.com)
         Jun 2021
 '''
@@ -31,10 +31,10 @@ def scaled_dot_product(q, k, v):
     attn_weights = tf.nn.softmax(scaled_qk, axis=-1)  
     output = tf.matmul(attn_weights, v) 
     return output
-    
+
 
 class MultiHeadAttention(tf.keras.layers.Layer):
-    def __init__(self, model_dim, n_heads):
+    def __init__(self, model_dim, n_heads, initializer='glorot_uniform'):
         super(MultiHeadAttention, self).__init__()
         self.n_heads = n_heads
         self.model_dim = model_dim
@@ -43,17 +43,17 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
         self.depth = model_dim // self.n_heads
 
-        self.wq = layers.Dense(model_dim)
-        self.wk = layers.Dense(model_dim)
-        self.wv = layers.Dense(model_dim)
+        self.wq = layers.Dense(model_dim, kernel_initializer=initializer)
+        self.wk = layers.Dense(model_dim, kernel_initializer=initializer)
+        self.wv = layers.Dense(model_dim, kernel_initializer=initializer)
 
-        self.dense = layers.Dense(model_dim)
+        self.dense = layers.Dense(model_dim, kernel_initializer=initializer)
 
     def split_into_heads(self, x, batch_size):
         x = tf.reshape(x, (batch_size, -1, self.n_heads, self.depth))
         return tf.transpose(x, perm=[0, 2, 1, 3])
 
-    def call(self, v, k, q, mask=None):
+    def call(self, v, k, q):
         batch_size = tf.shape(q)[0]
 
         q = self.wq(q)  
@@ -74,11 +74,12 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         
 
 class PositionalEmbedding(tf.keras.layers.Layer):
-    def __init__(self, n_patches, model_dim):
+    def __init__(self, n_patches, model_dim, initializer='glorot_uniform'):
         super(PositionalEmbedding, self).__init__()
         self.n_patches = n_patches
         self.position_embedding = layers.Embedding(
-            input_dim=n_patches, output_dim=model_dim
+            input_dim=n_patches, output_dim=model_dim,
+            embeddings_initializer=initializer
         )
 
     def call(self, patches):
@@ -87,12 +88,14 @@ class PositionalEmbedding(tf.keras.layers.Layer):
 
     
 class TransformerBlock(tf.keras.layers.Layer):
-    def __init__(self, model_dim, n_heads=2, mlp_dim=512, rate=0.0, eps=1e-6):
+    def __init__(self, model_dim, n_heads=2, mlp_dim=512, 
+                 rate=0.0, eps=1e-6, initializer='glorot_uniform'):
         super(TransformerBlock, self).__init__()
-        self.attn = MultiHeadAttention(model_dim, n_heads)
+        self.attn = MultiHeadAttention(model_dim, n_heads, initializer=initializer)
         self.mlp = tf.keras.Sequential([
-            layers.Dense(mlp_dim, activation='gelu'), 
-            layers.Dense(model_dim),
+            layers.Dense(mlp_dim, activation='gelu', 
+                         kernel_initializer=initializer), 
+            layers.Dense(model_dim, kernel_initializer=initializer),
         ])
         self.norm1 = layers.LayerNormalization(epsilon=eps)
         self.norm2 = layers.LayerNormalization(epsilon=eps)
@@ -110,39 +113,39 @@ class TransformerBlock(tf.keras.layers.Layer):
         
         
 class Generator(tf.keras.models.Model):
-    def __init__(self, model_dim=1024, noise_dim=128, depth=[5, 4, 2], 
-                 heads=[2, 2, 2], mlp_dim=[512, 512, 512], n_classes=10):
+    def __init__(self, model_dim=1024, noise_dim=256, depth=[5, 4, 2], 
+                 heads=[4, 4, 4], mlp_dim=[4096, 1024, 256], initializer='glorot_uniform'):
         super(Generator, self).__init__()
-        self.class_emb = layers.Embedding(n_classes, noise_dim)
         self.init = tf.keras.Sequential([
-            layers.Dense(8 * 8 * model_dim, use_bias=False),
+            layers.Dense(8 * 8 * model_dim, use_bias=False, 
+                         kernel_initializer=initializer),
             layers.Reshape((8 * 8, model_dim))
         ])     
         
-        self.pos_emb_8 = PositionalEmbedding(64, model_dim)
+        self.pos_emb_8 = PositionalEmbedding(64, model_dim, initializer=initializer)
         self.block_8 = tf.keras.Sequential()
         for _ in range(depth[0]):
-            self.block_8.add(TransformerBlock(model_dim, heads[0], mlp_dim[0]))
+            self.block_8.add(TransformerBlock(model_dim, heads[0], mlp_dim[0], 
+                                              initializer=initializer))
          
-        self.pos_emb_16 = PositionalEmbedding(256, model_dim // 4)
+        self.pos_emb_16 = PositionalEmbedding(256, model_dim // 4, initializer=initializer)
         self.block_16 = tf.keras.Sequential()
         for _ in range(depth[1]):
-            self.block_16.add(TransformerBlock(model_dim // 4, heads[1], mlp_dim[1]))
+            self.block_16.add(TransformerBlock(model_dim // 4, heads[1], mlp_dim[1], 
+                                               initializer=initializer))
             
-        self.pos_emb_32 = PositionalEmbedding(1024, model_dim // 16)
+        self.pos_emb_32 = PositionalEmbedding(1024, model_dim // 16, initializer=initializer)
         self.block_32 = tf.keras.Sequential()
         for _ in range(depth[2]):
-            self.block_32.add(TransformerBlock(model_dim // 16, heads[2], mlp_dim[2]))
+            self.block_32.add(TransformerBlock(model_dim // 16, heads[2], mlp_dim[2], 
+                                               initializer=initializer))
 
-        self.ch_conv = layers.Conv2D(3, 3, padding='same')
+        self.ch_conv = layers.Conv2D(3, 3, padding='same', kernel_initializer=initializer)
                        
-    def call(self, x, z):
-        B = x.shape[0]
-        x = self.class_emb(x) # (B, 1, noise_dim)
-        x = tf.squeeze(x, axis=1) # (B, noise_dim)
-        z = normalize_2nd_moment(z)
-        x *= z
-        
+    def call(self, z):
+        B = z.shape[0]
+        x = normalize_2nd_moment(z)
+   
         x = self.init(x)
         x = self.pos_emb_8(x)
         x = self.block_8(x)
@@ -161,41 +164,48 @@ class Generator(tf.keras.models.Model):
 
 class Discriminator(tf.keras.models.Model):
     def __init__(self, model_dim=[192, 192], depth=[3, 3], patch_size=2, 
-                 heads=[2, 2, 2], mlp_dim=[512, 512, 512], img_size=32, n_classes=10):
+                 heads=[4, 4, 4], mlp_dim=[768, 1536, 1536], img_size=32, 
+                 policy='color,translation,cutout', initializer='glorot_uniform'):
         super(Discriminator, self).__init__()
         '''Encode image'''
         patches_32 = (img_size // patch_size)**2
         self.patch_32 = tf.keras.Sequential([
             layers.Conv2D(model_dim[0], kernel_size=patch_size, 
-                          strides=patch_size, padding='same')
+                          strides=patch_size, padding='same', kernel_initializer=initializer)
         ])
         self.pos_emb_32 = PositionalEmbedding(n_patches=patches_32, 
-                                              model_dim=model_dim[0])
+                                              model_dim=model_dim[0], initializer=initializer)
         self.block_32 = tf.keras.Sequential()
         for _ in range(depth[0]):
-            self.block_32.add(TransformerBlock(model_dim[0], heads[0], mlp_dim[0]))
+            self.block_32.add(TransformerBlock(model_dim[0], heads[0], mlp_dim[0], 
+                                               initializer=initializer))
 
         patches_16 = ((img_size//2) // patch_size)**2
         self.patch_16 = tf.keras.Sequential([
             layers.Conv2D(model_dim[1], kernel_size=patch_size*2, 
-                          strides=patch_size*2, padding='same'),
+                          strides=patch_size*2, padding='same', kernel_initializer=initializer),
         ])
         self.pos_emb_16 = PositionalEmbedding(n_patches=patches_16, 
                                               model_dim=model_dim[0] + model_dim[1])
         self.block_16 = tf.keras.Sequential()
         for _ in range(depth[1]):
             self.block_16.add(TransformerBlock(model_dim[0] + model_dim[1], 
-                                               heads[1], mlp_dim[1]))
+                                               heads[1], mlp_dim[1], initializer=initializer))
         '''Last block'''
-        self.last_block=TransformerBlock(model_dim[0] + model_dim[1], heads[2], mlp_dim[2])
-        self.norm = layers.LayerNormalization()
+        self.last_block=TransformerBlock(model_dim[0] + model_dim[1], heads[2], mlp_dim[2], 
+                                         initializer=initializer)
+        self.norm = layers.LayerNormalization(epsilon=1e-6)
         '''Encode cls_token'''        
-        self.cls_token = layers.Embedding(n_classes, model_dim[0] + model_dim[1])
+        self.cls_dim = model_dim[0] + model_dim[1]
+        self.cls_token = self.add_weight(name='cls_token',
+                                         shape=(1, self.cls_dim),
+                                         initializer=initializer,
+                                         trainable=True)
         '''Logits'''
-        self.logits = layers.Dense(1)
-        self.policy = 'color,translation,cutout' 
+        self.logits = layers.Dense(1, kernel_initializer=initializer)
+        self.policy = policy
 
-    def call(self, img, cls):
+    def call(self, img):
         img = DiffAugment(img, self.policy)
         x1 = self.patch_32(img)
         B, H, W, C = x1.shape
@@ -213,8 +223,8 @@ class Discriminator(tf.keras.models.Model):
         x = self.pos_emb_16(x)
         x = self.block_16(x)
 
-        cls_code = self.cls_token(cls)
-        x = tf.concat([cls_code, x], 1)
+        cls_tokens = tf.broadcast_to(self.cls_token, [B, 1, self.cls_dim])
+        x = tf.concat([cls_tokens, x], 1)
         x = self.last_block(x)
         x = self.norm(x)
         return [self.logits(x[:, 0])]
