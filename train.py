@@ -46,7 +46,8 @@ def run_training(args):
                                   heads=hparams['d_heads'],
                                   mlp_dim=hparams['d_mlp'],
                                   initializer=hparams['d_initializer'],
-                                  patch_size=hparams['d_patch_size'])
+                                  patch_size=hparams['d_patch_size'],
+                                  policy=hparams['policy'])
     
     generator_optimizer = tf.keras.optimizers.Adam(
         learning_rate=hparams['g_learning_rate'], 
