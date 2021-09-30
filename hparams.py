@@ -14,7 +14,7 @@ hparams = {'batch_size': 64,
            'd_heads': [4, 4, 4], # Default: [4, 4, 4]
            'd_mlp': [768, 1024, 1024], # Default: [768, 1536, 1536]
            'd_initializer': 'orthogonal', # Default: 'glorot_uniform'
-           'd_patch_size': 4, # Default: 2
+           'd_patch_size': 2, # Default: 2
            'd_learning_rate': 0.0001,
            'd_beta_1': 0.0,
            'd_beta_2': 0.99,
