@@ -48,8 +48,8 @@ To train Small-TransGAN:
 - Increase the MLP hidden dimension of the Generator last block.
 - Use orthogonal initializer and 4 heads in both Generator and Discriminator.
 - Employ WGAN-GP loss.
-- Adam with $\beta_1 = 0.0$ and $\beta_2 = 0.99$.
-- Set noise vector $z$ dimension to $64$.
+- Adam with β1 = 0.0$ and β2 = 0.99.
+- Set noise vector dimension to $64$.
 
 
 ## Licence
