@@ -1,6 +1,6 @@
 '''TransGAN model for Tensorflow.
 
-# Reference paper
+# Reference:
 - Yifan Jiang, Shiyu Chang and Zhangyang Wang. 
   [TransGAN: Two Pure Transformers Can Make One Strong GAN, and That Can Scale Up](
     https://arxiv.org/abs/2102.07074) 
@@ -53,7 +53,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         x = tf.reshape(x, (batch_size, -1, self.n_heads, self.depth))
         return tf.transpose(x, perm=[0, 2, 1, 3])
 
-    def call(self, v, k, q):
+    def call(self, q, k, v):
         batch_size = tf.shape(q)[0]
 
         q = self.wq(q)  

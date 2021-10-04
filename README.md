@@ -6,7 +6,7 @@ Strong GAN, and That Can Scale Up](https://arxiv.org/abs/2102.07074).
 
 ![Architecture](./images/architecture.png)
 
-This repository implements Small-TransGAN and is meant to be educational. See _Implementation notes_.
+This repository implements Small-TransGAN and is meant to be educational. See [Implementation notes](#Implementation-notes).
 
 See [here](https://github.com/VITA-Group/TransGAN) for the official Pytorch implementation.
 
