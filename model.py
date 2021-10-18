@@ -1,9 +1,9 @@
 '''TransGAN model for Tensorflow.
 
-# Reference:
-- Yifan Jiang, Shiyu Chang and Zhangyang Wang. 
-  [TransGAN: Two Pure Transformers Can Make One Strong GAN, and That Can Scale Up](
-    https://arxiv.org/abs/2102.07074) 
+Reference:
+ - Yifan Jiang, Shiyu Chang and Zhangyang Wang. 
+   [TransGAN: Two Pure Transformers Can Make One Strong GAN, and That Can Scale Up](
+     https://arxiv.org/abs/2102.07074) 
   
 Author: Emilio Morales (mil.mor.mor@gmail.com)
         Jun 2021

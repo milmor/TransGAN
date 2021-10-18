@@ -22,14 +22,6 @@ def save_hparams(hparams, model_dir, model_name):
     f = open(os.path.join(model_dir, '{}_hparams.json'.format(model_name)), 'w')
     f.write(json_hparams)
     f.close()
-
-def load_hparams(model_dir, model_name):
-    hparams_path = os.path.join(model_dir, '{}_hparams.json'.format(model_name))
-    with open(hparams_path, 'r') as f:
-        hparams = json.load(f)
-    f.close()
-    print('Loading hparams from {}'.format(hparams_path))
-    return hparams
     
 def generate_and_save_images(model, epoch, noise, direct):
     predictions = model(noise, training=False)
