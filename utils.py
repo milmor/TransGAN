@@ -23,20 +23,23 @@ def save_hparams(hparams, model_dir, model_name):
     f.write(json_hparams)
     f.close()
     
-def generate_and_save_images(model, epoch, noise, direct):
+def generate_and_save_images(model, epoch, noise, direct, img_size=32, f_size=2.88):
     predictions = model(noise, training=False)
  
-    predictions = tf.clip_by_value(predictions[0] * 127.5 + 127.5, 0.0, 255.0)
-    predictions = tf.cast(predictions, tf.uint8)
-    n = int(np.sqrt(predictions.shape[0]))
-    fig = plt.figure(figsize=((n//2)-1.5, (n//2)-1.5))
-    for i in range(predictions.shape[0]):
-        plt.subplot(n, n, i+1)
-        plt.imshow(predictions[i, :, :, :])
+    gen_img = tf.clip_by_value(predictions[0] * 127.5 + 127.5, 0.0, 255.0)
+    gen_img = tf.cast(gen_img, tf.uint8)
+
+    fig = plt.figure(figsize=(f_size, f_size))
+
+    for i in range(gen_img.shape[0]):
+        plt.subplot(8, 8, i+1)
+        plt.imshow(gen_img[i, :, :, :])
         plt.axis('off')
     plt.subplots_adjust(wspace=0, hspace=0, left=0, right=1, bottom=0, top=1)
+
     path = os.path.join(direct, '{:04d}.png'.format(epoch))
     plt.savefig(path)
+
     # Clear the current axes.
     plt.cla() 
     # Clear the current figure.

@@ -6,8 +6,6 @@ Strong GAN, and That Can Scale Up](https://arxiv.org/abs/2102.07074).
 
 ![Architecture](./images/architecture.png)
 
-This repository implements Small-TransGAN and is meant to be educational. See [Implementation notes](#Implementation-notes).
-
 See [here](https://github.com/VITA-Group/TransGAN) for the official Pytorch implementation.
 
 
@@ -32,9 +30,8 @@ Run `tensorboard --logdir ./`.
 
 ## Examples
 ### CIFAR-10
-Small-TransGAN training progress
 
-![](images/small_transgan.gif "Small-TransGAN on CIFAR-10")
+![](images/small_transgan.gif "TransGAN on CIFAR-10")
 
 
 ## Implementation notes
