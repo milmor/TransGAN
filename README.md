@@ -30,8 +30,7 @@ Run `tensorboard --logdir ./`.
 
 ## Examples
 ### CIFAR-10
-
-![](images/small_transgan.gif "TransGAN on CIFAR-10")
+![](images/transgan_samples.gif "TransGAN on CIFAR-10")
 
 
 ## Implementation notes
