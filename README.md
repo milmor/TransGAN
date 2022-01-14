@@ -29,7 +29,7 @@ Run `tensorboard --logdir ./`.
 
 
 ## Examples
-### CIFAR-10
+### CIFAR-10 training progress
 ![](images/transgan_samples.gif "TransGAN on CIFAR-10")
 
 
@@ -45,7 +45,7 @@ To train Small-TransGAN:
 - Use orthogonal initializer and 4 heads in both Generator and Discriminator.
 - Employ WGAN-GP loss.
 - Adam with β1 = 0.0 and β2 = 0.99.
-- Set noise vector dimension to 64.
+- Noise dimension = 64.
 
 
 ## Licence

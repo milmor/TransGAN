@@ -144,6 +144,8 @@ def run_training(args):
             disc_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
             disc_gradients, _ = tf.clip_by_global_norm(disc_gradients, 5.0)
             discriminator_optimizer.apply_gradients(zip(disc_gradients, discriminator.trainable_variables)) 
+            disc_loss_avg(d_cost)
+            gp_avg(gp)
 
         noise = tf.random.normal([hparams['batch_size'], hparams['noise_dim']])
 
@@ -156,11 +158,7 @@ def run_training(args):
         gen_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
         gen_gradients, _ = tf.clip_by_global_norm(gen_gradients, 5.0)
         generator_optimizer.apply_gradients(zip(gen_gradients, generator.trainable_variables))
-
-        # Update metrics
         gen_loss_avg(gen_loss)
-        disc_loss_avg(d_cost)
-        gp_avg(gp)
 
     # n examples to plot with generate_and_save_images()
     num_examples_to_generate = args.n_plot_images 
