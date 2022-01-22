@@ -16,9 +16,9 @@ See [here](https://github.com/VITA-Group/TransGAN) for the official Pytorch impl
 
 ## Usage
 ### Train
-1. Use `--model_name=<name>` to provide the checkpoint directory name. 
+1. Use `--dataset_path=<path>` to provide the dataset path (default is CIFAR-10) and `--model_name=<name>` to provide the checkpoint directory name.
 ```
-python train.py --model_name=<name> 
+python train.py --dataset_path=<path> --model_name=<name> 
 ```
 
 ### Hparams setting

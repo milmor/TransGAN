@@ -16,6 +16,7 @@ def run_training(args):
     print('\n##############')
     print('TransGAN Train')
     print('##############\n')
+    dataset_path = args.dataset_path
     model_name = args.model_name
     main_dir = args.main_dir
     ckpt_interval = args.ckpt_interval
@@ -35,6 +36,7 @@ def run_training(args):
     gen_test_dir = os.path.join(model_dir, 'test-gen')
     os.makedirs(gen_test_dir, exist_ok=True)
 
+    # Define model
     generator = Generator(model_dim=hparams['g_dim'], 
                           noise_dim=hparams['noise_dim'],
                           depth=hparams['g_depth'],
@@ -58,6 +60,7 @@ def run_training(args):
         beta_1=hparams['d_beta_1'],
         beta_2=hparams['d_beta_2'])
 
+    # Create/Load checkpoint
     checkpoint_dir = os.path.join(model_dir, 'training-checkpoints')
     ckpt = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
                                discriminator_optimizer=discriminator_optimizer,
@@ -78,11 +81,14 @@ def run_training(args):
         print(key, ': ', value)
     print('\n')
     
-    (train_images, _), (_, _) = tf.keras.datasets.cifar10.load_data()
-    train_images = train_images.astype('float32')
-    train_images = (train_images - 127.5) / 127.5 
-
-    train_dataset = create_ds(train_images, hparams['batch_size'], seed=train_seed)
+    # Dataset stup
+    if dataset_path == 'CIFAR-10':
+        (train_images, _), (_, _) = tf.keras.datasets.cifar10.load_data()
+        train_images = train_images.astype('float32')
+        train_images = (train_images - 127.5) / 127.5 
+        train_dataset = create_cifar_ds(train_images, hparams['batch_size'], seed=train_seed)
+    else:
+        train_dataset = create_train_ds(dataset_path, hparams['batch_size'], seed=train_seed)
               
     if hparams['loss'] == 'bce':
         cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -166,9 +172,8 @@ def run_training(args):
     noise_seed = tf.random.normal([num_examples_to_generate, 
                                   hparams['noise_dim']], seed=test_seed) 
     writer = tf.summary.create_file_writer(log_dir)
-    print('Total batches: {}'.format(tf.data.experimental.cardinality(train_dataset).numpy()))
 
-    for _ in range(epochs):
+    for _ in range(int(ckpt.epoch), epochs):
         start = time.time()
         step_int = int(ckpt.epoch)
         # Clear metrics
@@ -202,10 +207,11 @@ def run_training(args):
     
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset_path', default='CIFAR-10')
     parser.add_argument('--model_name', default='model')
     parser.add_argument('--main_dir', default='logs-TransGAN')
-    parser.add_argument('--ckpt_interval', type=int, default=10)
-    parser.add_argument('--max_ckpt_to_keep', type=int, default=20)
+    parser.add_argument('--ckpt_interval', type=int, default=5)
+    parser.add_argument('--max_ckpt_to_keep', type=int, default=5)
     parser.add_argument('--epochs', type=int, default=5000)
     parser.add_argument('--train_seed', type=int, default=15)    
     parser.add_argument('--test_seed', type=int, default=15)    

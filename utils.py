@@ -7,14 +7,35 @@ import json
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
-def create_ds(images, batch_size, seed=15):
+def train_convert(file_path):
+    img = tf.io.read_file(file_path)
+    img = tf.image.decode_jpeg(img, channels=3)
+    img = tf.image.resize(img, [32, 32])
+    img = tf.image.random_flip_left_right(img)
+    img = (img - 127.5) / 127.5 
+    return img
+
+def create_train_ds(train_dir, batch_size, seed=15):
+    img_paths = tf.data.Dataset.list_files(str(train_dir))
+    BUFFER_SIZE = tf.data.experimental.cardinality(img_paths)
+     
+    img_paths = img_paths.cache().shuffle(BUFFER_SIZE, seed=seed)
+    ds = img_paths.map(train_convert, num_parallel_calls=AUTOTUNE).batch(
+        batch_size, drop_remainder=True, num_parallel_calls=AUTOTUNE).prefetch(
+        AUTOTUNE)
+    print('Train dataset size: {}'.format(BUFFER_SIZE))  
+    print('Batches: {}'.format(tf.data.experimental.cardinality(ds))) 
+    return ds
+
+def create_cifar_ds(images, batch_size, seed=15):
     BUFFER_SIZE = images.shape[0]
-    img_ds = tf.data.Dataset.from_tensor_slices(images)
-    print('Total images: {}'.format(images.shape[0]))
+    
     ds = img_ds.cache().shuffle(
             BUFFER_SIZE, seed=seed).batch(batch_size, 
                 drop_remainder=True, 
                 num_parallel_calls=AUTOTUNE).prefetch(AUTOTUNE)
+    print('Train dataset size: {}'.format(BUFFER_SIZE))  
+    print('Batches: {}'.format(tf.data.experimental.cardinality(ds))) 
     return ds
 
 def save_hparams(hparams, model_dir, model_name):
