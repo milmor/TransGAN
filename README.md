@@ -16,37 +16,37 @@ See [here](https://github.com/VITA-Group/TransGAN) for the official Pytorch impl
 
 ## Usage
 ### Train
-1. Use `--dataset_path=<path>` to provide the dataset path (default is CIFAR-10) and `--model_name=<name>` to provide the checkpoint directory name.
+1. Use `--dataset_path=<path>` to provide the dataset path (default builds CIFAR-10 dataset) and `--model_name=<name>` to provide the checkpoint directory name.
 ```
 python train.py --dataset_path=<path> --model_name=<name> 
 ```
 
 ### Hparams setting
-Set hyperparameters on the `hparams.py` file.
+Adjust hyperparameters on the `hparams.py` file.
 
 ### Tensorboard
 Run `tensorboard --logdir ./`.
 
 
 ## Examples
-### CIFAR-10 training progress
+- CIFAR-10 training progress
+
 ![](images/transgan_samples.gif "TransGAN on CIFAR-10")
 
 
-## Implementation notes
+## References
 Code:
 - This model depends on other files that may be licensed under different open source licenses.
 - TransGAN uses Shengyu Zhao, Zhijian Liu, Ji Lin, Jun-Yan Zhu and Song Han. [Differentiable Augmentation](https://arxiv.org/abs/2006.10738). Under BSD 2-Clause "Simplified" License.
 - Small-TransGAN models are instances of the original TransGAN architecture with a smaller number of layers and lower-dimensional embeddings.
 
-To train Small-TransGAN:
-- Use single layer per resolution Generator.
-- Increase the MLP hidden dimension of the Generator last block.
-- Use orthogonal initializer and 4 heads in both Generator and Discriminator.
-- Employ WGAN-GP loss.
+Implementation notes:
+- Single layer per resolution Generator.
+- Orthogonal initializer and 4 heads in both Generator and Discriminator.
+- WGAN-GP loss.
 - Adam with β1 = 0.0 and β2 = 0.99.
 - Noise dimension = 64.
-
+- Batch size = 64
 
 ## Licence
 MIT
