@@ -29,7 +29,8 @@ def create_train_ds(train_dir, batch_size, seed=15):
 
 def create_cifar_ds(images, batch_size, seed=15):
     BUFFER_SIZE = images.shape[0]
-    
+    images = tf.data.Dataset.from_tensor_slices(images)
+
     ds = images.cache().shuffle(
             BUFFER_SIZE, seed=seed).batch(batch_size, 
                 drop_remainder=True, 
