@@ -1,5 +1,5 @@
 # TransGAN
-Implementation of the Transformer-based GAN model in the paper:
+Implementation of the _Transformer-based GAN_ model in the paper:
 
 > Yifan Jiang, Shiyu Chang and Zhangyang Wang. [TransGAN: Two Pure Transformers Can Make One
 Strong GAN, and That Can Scale Up](https://arxiv.org/abs/2102.07074). 
