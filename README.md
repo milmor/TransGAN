@@ -1,7 +1,7 @@
 # TransGAN
 Implementation of the _Transformer-based GAN_ model in the paper:
 
-> Yifan Jiang, Shiyu Chang and Zhangyang Wang. [TransGAN: Two Pure Transformers Can Make One
+> [TransGAN: Two Pure Transformers Can Make One
 Strong GAN, and That Can Scale Up](https://arxiv.org/abs/2102.07074). 
 
 ![Architecture](./images/architecture.png)
@@ -37,7 +37,7 @@ Run `tensorboard --logdir ./`.
 ## References
 Code:
 - This model depends on other files that may be licensed under different open source licenses.
-- TransGAN uses Shengyu Zhao, Zhijian Liu, Ji Lin, Jun-Yan Zhu and Song Han. [Differentiable Augmentation](https://arxiv.org/abs/2006.10738). Under BSD 2-Clause "Simplified" License.
+- TransGAN uses [Differentiable Augmentation](https://arxiv.org/abs/2006.10738). Under BSD 2-Clause "Simplified" License.
 - Small-TransGAN models are instances of the original TransGAN architecture with a smaller number of layers and lower-dimensional embeddings.
 
 Implementation notes:
