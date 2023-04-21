@@ -16,13 +16,13 @@ See [here](https://github.com/VITA-Group/TransGAN) for the official Pytorch impl
 
 ## Usage
 ### Train
-1. Use `--dataset_path=<path>` to provide the dataset path (default builds CIFAR-10 dataset) and `--model_name=<name>` to provide the checkpoint directory name.
+1. Use `--dataset_path=<path>` to specify the dataset path (default builds CIFAR-10 dataset), and `--model_name=<name>` to specify the checkpoint directory name.
 ```
 python train.py --dataset_path=<path> --model_name=<name> 
 ```
 
 ### Hparams setting
-Adjust hyperparameters on the `hparams.py` file.
+Adjust hyperparameters in the `hparams.py` file.
 
 ### Tensorboard
 Run `tensorboard --logdir ./`.
