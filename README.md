@@ -1,3 +1,7 @@
+
+## 🔥 News
+- [2024-09-13]  The new Transformer GAN model, [LadaGAN](https://github.com/milmor/LadaGAN), has been released. It offers improved FID evaluation results, includes model checkpoints, and requires only a single GPU for training. The code has been optimized for better performance and now offers additional functionalities.
+
 # TransGAN
 Implementation of the _Transformer-based GAN_ model in the paper:
 
